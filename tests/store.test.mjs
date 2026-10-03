@@ -1,0 +1,8 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createSeed} from '../src/data/seed.js';
+import {confirmTransfer,visibleAnimals,animalById} from '../src/services/store.js';
+import {loadState,saveState,resetState} from '../src/services/repository.js';
+test('Una transferencia exige aceptación y conserva ficha e historial',()=>{const s=createSeed(),a=animalById(s,'canelo'),id=a.id,events=a.events.length;a.transfer.candidate='Sofía L.';assert.throws(()=>confirmTransfer(a),/Primero/);assert.equal(a.owner,null);a.transfer.accepted=true;assert.equal(confirmTransfer(a),true);assert.equal(a.id,id);assert.equal(a.owner,'Sofía L.');assert.equal(a.situation,'Adoptado');assert.equal(a.events.length,events+1);assert.equal(confirmTransfer(a),false);assert.equal(a.events.length,events+1);});
+test('Filtros combinan especie, salud, distancia y situación sin mostrar mascotas privadas',()=>{const s=createSeed();assert(!visibleAnimals(s).some(a=>a.id==='luna'));s.filters={situations:['Callejero'],health:['Necesita atención'],species:['Perro'],distance:500,recent:24};assert.deepEqual(visibleAnimals(s).map(a=>a.id),['grecia']);assert.deepEqual(visibleAnimals(s,'Rocco'),[]);});
+test('El repositorio conserva cambios de sesión y recupera almacenamiento corrupto',()=>{let value='malformed';const storage={getItem:()=>value,setItem:(k,v)=>value=v};const s=loadState(storage);s.user.name='Sofía L.';saveState(s,storage);assert.equal(loadState(storage).user.name,'Sofía L.');const reset=resetState(storage);assert.equal(reset.user.name,'Pamela A.');assert.equal(loadState(storage).user.name,'Pamela A.');});
